@@ -1,14 +1,18 @@
+from django import forms
+from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.views import generic
-from django.contrib.auth.mixins import LoginRequiredMixin
 
 from .models import Driver, Car, Manufacturer
 
 
 @login_required
-def index(request):
+def index(request: HttpRequest) -> HttpResponse:
     """View function for the home page of the site."""
 
     num_drivers = Driver.objects.count()
@@ -61,11 +65,29 @@ class CarListView(LoginRequiredMixin, generic.ListView):
 class CarDetailView(LoginRequiredMixin, generic.DetailView):
     model = Car
 
+    def post(
+            self, request: HttpRequest, *args, **kwargs
+    ) -> HttpResponseRedirect:
+        car = self.get_object()
+        driver = request.user
+
+        if "assign" in request.POST:
+            car.drivers.add(driver)
+        elif "remove" in request.POST:
+            car.drivers.remove(driver)
+
+        return redirect("taxi:car-detail", pk=car.pk)
+
 
 class CarCreateView(LoginRequiredMixin, generic.CreateView):
     model = Car
     fields = "__all__"
     success_url = reverse_lazy("taxi:car-list")
+
+    def get_form(self, *args, **kwargs) -> forms.ModelForm:
+        form = super().get_form(*args, **kwargs)
+        form.fields["drivers"].widget = forms.CheckboxSelectMultiple()
+        return form
 
 
 class CarUpdateView(LoginRequiredMixin, generic.UpdateView):
@@ -87,3 +109,56 @@ class DriverListView(LoginRequiredMixin, generic.ListView):
 class DriverDetailView(LoginRequiredMixin, generic.DetailView):
     model = Driver
     queryset = Driver.objects.all().prefetch_related("cars__manufacturer")
+
+
+class LicenseValidationMixin:
+    def clean_license_number(self) -> str:
+        license_number = self.cleaned_data.get("license_number")
+        if not (
+                license_number[:3].isalpha()
+                and license_number[:3].isupper()
+                and license_number[3:].isdigit()
+                and len(license_number) == 8
+        ):
+            raise forms.ValidationError(
+                "License number must consist of "
+                "3 uppercase letters followed by 5 digits."
+            )
+        return license_number
+
+
+class DriverCreationForm(LicenseValidationMixin, UserCreationForm):
+    license_number = forms.CharField(max_length=8, required=True)
+
+    class Meta:
+        model = get_user_model()
+        fields = (
+            "license_number", "username", "password1", "password2",
+            "email", "first_name", "last_name"
+        )
+
+
+class DriverCreateView(LoginRequiredMixin, generic.CreateView):
+    model = get_user_model()
+    form_class = DriverCreationForm
+    success_url = reverse_lazy("taxi:driver-list")
+
+
+class DriverDeleteView(LoginRequiredMixin, generic.DeleteView):
+    model = get_user_model()
+    success_url = reverse_lazy("taxi:driver-list")
+
+
+class DriverLicenseUpdateForm(LicenseValidationMixin, forms.ModelForm):
+    license_number = forms.CharField(max_length=8, required=True)
+
+    class Meta:
+        model = get_user_model()
+        fields = ("license_number",)
+
+
+class DriverLicenseUpdateView(LoginRequiredMixin, generic.UpdateView):
+    model = get_user_model()
+    form_class = DriverLicenseUpdateForm
+    template_name = "taxi/driver_license_update_form.html"
+    success_url = reverse_lazy("taxi:driver-list")
