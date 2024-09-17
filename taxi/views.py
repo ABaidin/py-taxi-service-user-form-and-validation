@@ -1,13 +1,13 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.views import generic
 
+from .forms import DriverCreationForm, DriverLicenseUpdateForm
 from .models import Driver, Car, Manufacturer
 
 
@@ -111,33 +111,6 @@ class DriverDetailView(LoginRequiredMixin, generic.DetailView):
     queryset = Driver.objects.all().prefetch_related("cars__manufacturer")
 
 
-class LicenseValidationMixin:
-    def clean_license_number(self) -> str:
-        license_number = self.cleaned_data.get("license_number")
-        if not (
-                license_number[:3].isalpha()
-                and license_number[:3].isupper()
-                and license_number[3:].isdigit()
-                and len(license_number) == 8
-        ):
-            raise forms.ValidationError(
-                "License number must consist of "
-                "3 uppercase letters followed by 5 digits."
-            )
-        return license_number
-
-
-class DriverCreationForm(LicenseValidationMixin, UserCreationForm):
-    license_number = forms.CharField(max_length=8, required=True)
-
-    class Meta:
-        model = get_user_model()
-        fields = (
-            "license_number", "username", "password1", "password2",
-            "email", "first_name", "last_name"
-        )
-
-
 class DriverCreateView(LoginRequiredMixin, generic.CreateView):
     model = get_user_model()
     form_class = DriverCreationForm
@@ -147,14 +120,6 @@ class DriverCreateView(LoginRequiredMixin, generic.CreateView):
 class DriverDeleteView(LoginRequiredMixin, generic.DeleteView):
     model = get_user_model()
     success_url = reverse_lazy("taxi:driver-list")
-
-
-class DriverLicenseUpdateForm(LicenseValidationMixin, forms.ModelForm):
-    license_number = forms.CharField(max_length=8, required=True)
-
-    class Meta:
-        model = get_user_model()
-        fields = ("license_number",)
 
 
 class DriverLicenseUpdateView(LoginRequiredMixin, generic.UpdateView):
