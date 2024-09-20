@@ -6,17 +6,18 @@ from django.contrib.auth.forms import UserCreationForm
 class LicenseValidationMixin:
     def clean_license_number(self) -> str:
         license_number = self.cleaned_data.get("license_number")
-        if not (
+        if (
                 license_number[:3].isalpha()
                 and license_number[:3].isupper()
                 and license_number[3:].isdigit()
                 and len(license_number) == 8
         ):
+            return license_number
+        else:
             raise forms.ValidationError(
                 "License number must consist of "
                 "3 uppercase letters followed by 5 digits."
             )
-        return license_number
 
 
 class DriverCreationForm(LicenseValidationMixin, UserCreationForm):

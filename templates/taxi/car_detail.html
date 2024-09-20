@@ -21,7 +21,7 @@
   </ul>
   <form method="post">
     {% csrf_token %}
-    {% if user in object.drivers.all %}
+    {% if car in user.cars.all %}
       <button type="submit" name="remove" class="btn btn-danger">Delete me from this car</button>
     {% else %}
       <button type="submit" name="assign" class="btn btn-primary">Assign me to this car</button>
