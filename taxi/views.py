@@ -1,4 +1,3 @@
-from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -7,8 +6,8 @@ from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.views import generic
 
-from .forms import DriverCreationForm, DriverLicenseUpdateForm
-from .models import Driver, Car, Manufacturer
+from taxi.forms import DriverCreationForm, DriverLicenseUpdateForm, CarCreationForm
+from taxi.models import Driver, Car, Manufacturer
 
 
 @login_required
@@ -81,13 +80,8 @@ class CarDetailView(LoginRequiredMixin, generic.DetailView):
 
 class CarCreateView(LoginRequiredMixin, generic.CreateView):
     model = Car
-    fields = "__all__"
+    form_class = CarCreationForm
     success_url = reverse_lazy("taxi:car-list")
-
-    def get_form(self, *args, **kwargs) -> forms.ModelForm:
-        form = super().get_form(*args, **kwargs)
-        form.fields["drivers"].widget = forms.CheckboxSelectMultiple()
-        return form
 
 
 class CarUpdateView(LoginRequiredMixin, generic.UpdateView):
@@ -125,5 +119,5 @@ class DriverDeleteView(LoginRequiredMixin, generic.DeleteView):
 class DriverLicenseUpdateView(LoginRequiredMixin, generic.UpdateView):
     model = get_user_model()
     form_class = DriverLicenseUpdateForm
-    template_name = "taxi/driver_license_update_form.html"
+    template_name = "taxi/driver_form.html"
     success_url = reverse_lazy("taxi:driver-list")

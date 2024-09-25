@@ -2,13 +2,12 @@
 {% load crispy_forms_filters %}
 
 {% block content %}
-  <h1>Create New Driver</h1>
-
-  <form method="post">
+  <h1>{{ object|yesno:"Update,Create" }} driver</h1>
+  <form action="" method="post" novalidate>
     {% csrf_token %}
-    {{ form|crispy }} 
+    {{ form|crispy }}
 
-    <button type="submit" class="btn btn-success">Create Driver</button>
+    <input type="submit" value="Submit" class="btn btn-primary">
     <a href="{% url 'taxi:driver-list' %}" class="btn btn-secondary">Cancel</a>
   </form>
 {% endblock %}

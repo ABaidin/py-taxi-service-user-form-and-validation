@@ -2,6 +2,8 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
 
+from taxi.models import Car
+
 
 class LicenseValidationMixin:
     def clean_license_number(self) -> str:
@@ -37,3 +39,12 @@ class DriverLicenseUpdateForm(LicenseValidationMixin, forms.ModelForm):
     class Meta:
         model = get_user_model()
         fields = ("license_number",)
+
+
+class CarCreationForm(forms.ModelForm):
+    class Meta:
+        model = Car
+        fields = ("model", "manufacturer", "drivers")
+        widgets = {
+            "drivers": forms.CheckboxSelectMultiple(),
+        }
